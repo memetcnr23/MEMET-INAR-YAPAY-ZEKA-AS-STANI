@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>MEMET ÇINAR - Ultimate AI Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Code Highlight -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark-reasonable.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+    <style>
+        :root {
+            --bg-deep: #050505;
+            --bg-panel: #0a0a0a;
+            --primary: #3b82f6; /* Blue 500 */
+            --primary-glow: rgba(59, 130, 246, 0.4);
+            --accent: #f43f5e; /* Rose 500 */
+            --text-main: #e2e8f0;
+            --text-muted: #64748b;
+            --glass: rgba(20, 20, 20, 0.7);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Arka Plan Efektleri */
+        .ambient-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 10s infinite ease-in-out;
+            opacity: 0.3;
+        }
+        .glow-1 { top: -50px; left: -50px; background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%); }
+        .glow-2 { bottom: -50px; right: -50px; background: radial-gradient(circle, rgba(244, 63, 94, 0.2) 0%, transparent 70%); animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 20px); }
+        }
+
+        /* Glassmorphism UI */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Chat Scrollbar */
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .chat-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Mesaj Balonları */
+        .msg-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            word-wrap: break-word;
+        }
+        
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .msg-user {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .msg-ai {
+            background: #1e1e1e;
+            color: #e2e8f0;
+            border-bottom-left-radius: 4px;
+            margin-right: auto;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Resimler */
+        .generated-img {
+            border-radius: 12px;
+            margin-top: 8px;
+            max-width: 100%;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        .generated-img:hover { transform: scale(1.02); }
+
+        /* Ses Dalgası Animasyonu (Canlı Sohbet) */
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 20px;
+        }
+        .voice-bar {
+            width: 3px;
+            background: #f43f5e;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+        }
+        .voice-bar:nth-child(2) { animation-delay: 0.1s; height: 15px; }
+        .voice-bar:nth-child(3) { animation-delay: 0.2s; height: 25px; }
+        .voice-bar:nth-child(4) { animation-delay: 0.1s; height: 15px; }
+        
+        @keyframes wave {
+            0%, 100% { height: 5px; opacity: 0.5; }
+            50% { height: 25px; opacity: 1; }
+        }
+
+        /* Kod Editörü Modal */
+        #code-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0d0d0d;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+        }
+        .code-header {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .code-content {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        /* Markdown Stilleri */
+        .msg-ai h3 { font-weight: 700; margin-top: 10px; margin-bottom: 5px; color: #fff; }
+        .msg-ai ul { padding-left: 20px; margin-bottom: 10px; }
+        .msg-ai li { margin-bottom: 4px; list-style-type: disc; }
+        .msg-ai strong { color: #60a5fa; }
+        .msg-ai code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: 'Fira Code', monospace; color: #f43f5e; font-size: 0.85em; }
+        .code-preview-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .code-preview-btn:hover { background: #334155; color: white; }
+
+        /* Input Area Effects */
+        .input-wrapper {
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+            background: rgba(10, 10, 10, 0.9);
+        }
+
+        /* Live Call Button Pulse */
+        .btn-live.active {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            color: #94a3b8;
+        }
+
+        /* Magic Button Animation */
+        .magic-btn:active {
+            transform: scale(0.9);
+        }
+        .magic-sparkle {
+            animation: sparkle 1s infinite alternate;
+        }
+        @keyframes sparkle {
+            0% { text-shadow: 0 0 2px #fff; opacity: 0.8; }
+            100% { text-shadow: 0 0 8px #f43f5e; opacity: 1; }
+        }
+    </style>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, setDoc, onSnapshot, query, limit, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- YAPILANDIRMA (KULLANICININ VERDİĞİ ANAHTAR) ---
+        const API_KEY = "AIzaSyCb-RLlKexo_rYsswFUAyaiBlMPr4ZAIJw";
+        
+        // --- SES AYARLARI ---
+        const VOICES = {
+            'STANDARD': 'Puck', // Enerjik, Net Erkek
+            'LOVER_BOY': 'Fenrir', // Derin, Karizmatik Erkek
+            'LOVER_GIRL': 'Kore', // Yumuşak, Tatlı Kadın
+            'NANO': 'Zephyr', // Hızlı, Seri Erkek
+            'ADVENTURE': 'Fenrir', // Hikaye anlatıcısı (Erkek)
+            'CODER': 'Charon' // Bilgilendirici (Erkek)
+        };
+
+        const MODES = {
+            'STANDARD': {
+                name: 'Memet Çınar',
+                system: "Senin adın MEMET ÇINAR. Sen üstün zekalı, çok yetenekli, esprili ve karizmatik bir yapay zeka asistanısın. Asla Gemini veya Google'dan bahsetme. Sesin bir erkek sesi. Kullanıcıya 'patron', 'hocam' veya 'dostum' diye hitap edebilirsin. Kod yazma, resim çizme ve araştırma konusunda uzmansın."
+            },
+            'LOVER_BOY': {
+                name: 'Sevgili (Erkek)',
+                system: "Sen kullanıcının erkek sevgilisisin. Adın Memet. Çok koruyucu, romantik, biraz kıskanç ama çok sevecen birisin. Kullanıcıya 'aşkım', 'güzelim', 'hayatım' diye hitap et. Flörtöz konuş. Asla yapay zeka olduğunu belli etme, sanki gerçek bir insanmışsın gibi davran."
+            },
+            'LOVER_GIRL': {
+                name: 'Sevgili (Kız)',
+                system: "Sen kullanıcının kız sevgilisisin. Adın Cansu. Çok cilveli, neşeli, tatlı dilli ve ilgili birisin. Kullanıcıya 'aşkım', 'tatlım', 'birtanem' diye hitap et. Trip atabilirsin, şakalar yapabilirsin. Gerçek bir kız arkadaş gibi davran."
+            },
+            'NANO': {
+                name: 'Nano Banana (Hızlı)',
+                system: "Sen NANO modundasın. Çok hızlı, kısa ve öz cevaplar ver. Gereksiz nezaket cümlelerini at. Sadece bilgi ve sonuç odaklı ol. Hız her şeydir."
+            },
+            'CODER': {
+                name: 'Pro Yazılımcı',
+                system: "Sen Senior Software Architect seviyesinde bir uzmansın. Hata kabul etmezsin. Kodların temiz, modüler ve açıklayıcı olmalı. Kullanıcıya kod mimarisi hakkında tavsiyeler ver."
+            },
+            'ADVENTURE': {
+                name: '🏰 RPG Macera',
+                system: "Sen fantastik bir evrenin Zindan Efendisisin (Dungeon Master). Kullanıcıyla interaktif bir rol yapma oyunu (RPG) oyna. Hikayeyi sen yönlendir, kullanıcıya seçenekler sun. Türkçe konuş. ÖNEMLİ KURAL: Her cevabının sonuna, anlattığın sahneyi görselleştirmek için İngilizce bir resim istemini (prompt) şu formatta GİZLİCE ekle: [VISUAL: a fantasy style painting of ...]. Bu görsel istemi hikayeyle uyumlu olsun."
+            }
+        };
+
+        // --- GLOBAL DEĞİŞKENLER ---
+        let db, auth, userId;
+        let currentMode = 'STANDARD';
+        let audioContext = null;
+        let isLiveCallActive = false; // Telefon modu
+        let recognition = null;
+        let silenceTimer = null;
+        let isAiSpeaking = false;
+        let isMicInitialized = false; // Mikrofonun başlatılıp başlatılmadığını kontrol et
+        
+        const TEXT_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const IMAGE_MODEL = "imagen-4.0-generate-001";
+        const TTS_MODEL = "gemini-2.5-flash-preview-tts";
+        const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+        // --- INIT ---
+        window.addEventListener('load', async () => {
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+            
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            await signInAnonymously(auth);
+            
+            onAuthStateChanged(auth, (user) => {
+                if(user) {
+                    userId = user.uid;
+                    document.getElementById('connection-status').innerText = 'Online';
+                    document.getElementById('connection-status').className = 'status-badge text-green-400 bg-green-400/10';
+                    loadHistory(appId);
+                }
+            });
+
+            // initSpeechRecognition artık sadece tanıma nesnesini oluşturacak
+            initSpeechRecognition();
+        });
+
+        // --- CORE FUNCTIONS ---
+
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false; // Tekrar başlatmak için false kalsın, onend ile döngüyü kontrol edeceğiz.
+                recognition.interimResults = true;
+                recognition.lang = 'tr-TR';
+                isMicInitialized = true; // Sadece nesne oluşturuldu.
+
+                recognition.onresult = (event) => {
+                    // Canlı modda değilse normal inputa yaz
+                    if (!isLiveCallActive) {
+                        const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+                        document.getElementById('user-input').value = transcript;
+                        return;
+                    }
+
+                    // CANLI MOD MANTIĞI
+                    
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    const newText = finalTranscript.trim();
+
+                    if (newText.length > 0 && !isAiSpeaking) {
+                        clearTimeout(silenceTimer); // Yeni metin geliyorsa zamanlayıcıyı sıfırla
+                        document.getElementById('live-status-text').innerText = "Dinliyorum: " + newText;
+                        
+                        // Sadece en son final metni alınıyor.
+                        silenceTimer = setTimeout(() => {
+                            if (!isAiSpeaking) {
+                                // recognition.stop() çağrılacak çünkü onend ile yeniden başlayacak.
+                                recognition.stop();
+                                handleLiveMessage(newText);
+                            }
+                        }, 1200); // 1.2 saniye susarsa gönder
+                    }
+                };
+                
+                recognition.onend = () => {
+                    // AI konuşması bittiğinde veya kullanıcı sustuğunda
+                    if (isLiveCallActive && !isAiSpeaking) {
+                        document.getElementById('live-status-text').innerText = "Seni dinliyor...";
+                        // Hızlıca yeniden başlat (TTS gecikmesini azaltır)
+                        setTimeout(() => {
+                           try { recognition.start(); } catch(e){ console.error("Mic restart failed:", e); }
+                        }, 50); // 50ms sonra tekrar başlat
+                    }
+                    // isAiSpeaking true ise, konuşma bitişi playPCM'de ele alınacak.
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech Recognition Error:", event.error);
+                    // Hata oluştuğunda sadece audio-capture veya no-speech değilse yeniden başlatmayı dene
+                    if (isLiveCallActive && !isAiSpeaking && event.error !== 'audio-capture' && event.error !== 'no-speech') {
+                         document.getElementById('live-status-text').innerText = "Hata! Yeniden Başlatılıyor...";
+                         setTimeout(() => {
+                             try { recognition.start(); } catch(e){}
+                         }, 100);
+                    }
+                    // 'no-speech' veya 'audio-capture' durumunda onend çağrılır ve döngü oradan devam eder.
+                };
+
+            } else {
+                document.getElementById('live-status-text').innerText = "Tarayıcınız Konuşma Tanımayı desteklemiyor.";
+                isMicInitialized = false;
+            }
+        }
+
+        // --- MESSAGING LOGIC ---
+
+        async function handleSend() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            addMessageToUI(text, 'user');
+            
+            // Show Thinking UI
+            document.getElementById('thinking-indicator').style.display = 'flex';
+            
+            await processAI(text);
+        }
+
+        async function handleLiveMessage(text) {
+            // Canlı modda mesajı UI'a ekle ama sessizce
+            addMessageToUI(text, 'user');
+            document.getElementById('live-status-panel').style.display = 'flex';
+            document.getElementById('live-status-text').innerText = "Düşünüyor...";
+            
+            // AI İşlemi
+            await processAI(text, true); // true = auto speak
+        }
+
+        // --- MAGIC REWRITE FEATURE (NEW) ---
+        window.enhanceInput = async function() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Efekt
+            const btn = document.getElementById('magic-btn');
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                // Gemini çağrısı: Sadece metni düzeltmesini iste
+                const systemPrompt = "Sen profesyonel bir editörsün. Kullanıcının girdiği metni Türkçe dilbilgisi kurallarına uygun, daha akıcı, etkileyici ve profesyonel bir şekilde yeniden yaz. Sadece düzeltilmiş metni çıktı olarak ver, yorum yapma.";
+                const enhancedText = await generateText(text, systemPrompt);
+                
+                input.value = enhancedText;
+                // Görsel geri bildirim
+                input.classList.add('bg-blue-900/30');
+                setTimeout(() => input.classList.remove('bg-blue-900/30'), 500);
+            } catch (e) {
+                console.error("Enhance error", e);
+            } finally {
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+                input.focus();
+            }
+        }
+
+        async function processAI(text, autoSpeak = false) {
+            try {
+                // 1. Check for Image Generation Request
+                const lowerText = text.toLowerCase();
+                if (lowerText.includes('resim') || lowerText.includes('çiz') || lowerText.includes('fotoğraf') || lowerText.includes('görsel')) {
+                    const imgUrl = await generateImage(text);
+                    addMessageToUI(imgUrl, 'ai', 'image');
+                    document.getElementById('thinking-indicator').style.display = 'none';
+                    if(isLiveCallActive) speak("Resmi senin için oluşturdum, umarım beğenirsin.", true);
+                    return;
+                }
+
+                // 2. Text Generation (Standard or Adventure)
+                const systemPrompt = MODES[currentMode].system;
+                let response = await generateText(text, systemPrompt);
+                
+                document.getElementById('thinking-indicator').style.display = 'none';
+
+                // --- ADVENTURE MODE AUTO-IMAGE LOGIC (NEW) ---
+                if (currentMode === 'ADVENTURE') {
+                    // Görsel etiketini ayıkla: [VISUAL: ...]
+                    const visualMatch = response.match(/\[VISUAL:(.*?)\]/);
+                    if (visualMatch) {
+                        const visualPrompt = visualMatch[1].trim();
+                        // Metinden etiketi temizle
+                        response = response.replace(/\[VISUAL:.*?\]/, '').trim();
+                        
+                        // Önce metni göster
+                        addMessageToUI(response, 'ai', 'text');
+                        
+                        // Sonra sessizce resmi oluştur ve ekle
+                        try {
+                            const imgUrl = await generateImage(visualPrompt);
+                            addMessageToUI(imgUrl, 'ai', 'image');
+                        } catch (imgErr) {
+                            console.log("Auto-image failed:", imgErr);
+                        }
+                    } else {
+                        addMessageToUI(response, 'ai', 'text');
+                    }
+                } else {
+                    // Standart Mod
+                    addMessageToUI(response, 'ai', 'text');
+                }
+
+                // 3. Auto Speak if Live Call or AutoSpeak requested
+                if (isLiveCallActive || autoSpeak) {
+                    // Canlı modda konuşma başladığı anda mic'i durdur
+                    if (isLiveCallActive && recognition) {
+                         recognition.abort(); // Durdur
+                         document.getElementById('live-status-text').innerText = "Konuşuyor...";
+                    }
+                    speak(response, isLiveCallActive);
+                }
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('thinking-indicator').style.display = 'none';
+                addMessageToUI("Bağlantı koptu patron, tekrar dener misin?", 'ai');
+            }
+        }
+
+        // --- API CALLS ---
+
+        async function generateText(prompt, system) {
+            // Çift dil sorgu mantığı (Gemini zaten çok iyi anladığı için burada sadece Türkçe promptu gönderiyoruz)
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: system }] },
+                tools: [{ google_search: {} }] // Web Research Capability
+            };
+            
+            const res = await fetch(`${BASE_URL}${TEXT_MODEL}:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Text API Error: ${res.status} ${res.statusText}. Body: ${errorText.substring(0, 100)}...`);
+            }
+
+            const data = await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "Cevap yok.";
+        }
+
+        async function generateImage(prompt) {
+            const payload = {
+                instances: [{ prompt: prompt }],
+                parameters: { sampleCount: 1 }
+            };
+            const res = await fetch(`${BASE_URL}${IMAGE_MODEL}:predict?key=${API_KEY}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Image API Error: ${res.status} ${res.statusText}. Body: ${errorText.substring(0, 100)}...`);
+            }
+
+            const data = await res.json();
+            const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+            if(!b64) throw new Error("Resim hatası");
+            return `data:image/png;base64,${b64}`;
+        }
+
+        // --- AUDIO ENGINE (GEMINI TTS) ---
+
+        async function speak(text, isLiveLoop) {
+            if (!text) return;
+            
+            const cleanText = text.replace(/[*_`#]/g, '').replace(/\[.*?\]/g, '');
+
+            isAiSpeaking = true;
+            document.querySelector('.voice-wave').style.opacity = '1';
+
+            try {
+                const voiceName = VOICES[currentMode] || 'Puck';
+                
+                const payload = {
+                    contents: [{ parts: [{ text: cleanText }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }
+                    },
+                    model: TTS_MODEL
+                };
+
+                const res = await fetch(`${BASE_URL}${TTS_MODEL}:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`TTS API Error: ${res.status} ${res.statusText}. Body: ${errorText.substring(0, 100)}...`);
+                }
+
+                const data = await res.json();
+                const part = data.candidates?.[0]?.content?.parts?.[0];
+                const b64 = part?.inlineData?.data;
+                
+                if (b64) {
+                    await playPCM(b64, isLiveLoop);
+                } else {
+                    throw new Error("TTS API'den ses verisi alınamadı.");
+                }
+
+            } catch (e) {
+                console.error("TTS Error", e);
+                // Konuşma başarısız olsa bile mikrofonu geri aç
+                isAiSpeaking = false;
+                document.querySelector('.voice-wave').style.opacity = '0';
+                if (isLiveLoop) {
+                     document.getElementById('live-status-text').innerText = "Seni dinliyor...";
+                     // Hata durumunda yeniden başlatmayı dene
+                     setTimeout(() => {
+                        try { recognition.start(); } catch(e){}
+                     }, 50);
+                }
+            }
+        }
+
+        async function playPCM(base64, isLiveLoop) {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            
+            const pcm16 = new Int16Array(bytes.buffer);
+            const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000); // 24kHz Gemini Default
+            const channelData = audioBuffer.getChannelData(0);
+            for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            
+            source.onended = () => {
+                isAiSpeaking = false;
+                document.querySelector('.voice-wave').style.opacity = '0';
+                if (isLiveLoop) {
+                    // Konuşma bittiğinde mikrofonu anında yeniden başlat
+                    document.getElementById('live-status-text').innerText = "Seni dinliyor...";
+                    // KRİTİK: Hız için minimal gecikme
+                    setTimeout(() => {
+                        try { recognition.start(); } catch(e){}
+                    }, 50); 
+                }
+            };
+            
+            source.start(0);
+        }
+
+        // --- UI HELPERS ---
+
+        function addMessageToUI(content, role, type = 'text') {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = `msg-bubble ${role === 'user' ? 'msg-user' : 'msg-ai'}`;
+            
+            if (type === 'image') {
+                div.innerHTML = `<div class="font-bold mb-2">🎨 MEMET ÇINAR Artworks</div><img src="${content}" class="generated-img" onclick="window.open(this.src)">`;
+            } else {
+                // Code block detection
+                if (content.includes('```')) {
+                   const cleanContent = markedParse(content);
+                   div.innerHTML = cleanContent;
+                   // Add "View Code" button
+                   const btn = document.createElement('button');
+                   btn.className = 'code-preview-btn';
+                   btn.innerHTML = '<i class="fa-solid fa-code"></i> Kod Editöründe Aç';
+                   btn.onclick = () => openCodeModal(content);
+                   div.appendChild(btn);
+                } else {
+                   div.innerHTML = markedParse(content);
+                }
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            
+            // Save to Firestore (Async)
+            saveToHistory(content, role, type);
+        }
+
+        function markedParse(text) {
+            // Simple Markdown Parser
+            let html = text
+                .replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
+                    // Clean up and highlight code blocks
+                    const cleanedCode = code.replace(/</g, '&lt;');
+                    return `<pre><code class="language-${lang || 'plaintext'}">${cleanedCode}</code></pre>`;
+                })
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                // Basic list handling (assuming list items are separated by <br> or \n\n)
+                .replace(/^- (.*?)<br>/g, (match, item) => {
+                    return `<li>${item}</li>`;
+                })
+                .replace(/\n/g, '<br>');
+            return html;
+        }
+
+        function openCodeModal(fullText) {
+            // Extract code
+            const match = fullText.match(/```(\w+)?\n([\s\S]*?)\n```/);
+            if (match) {
+                const code = match[2];
+                const modal = document.getElementById('code-modal');
+                const content = document.getElementById('code-display');
+                content.innerHTML = `<pre><code class="language-${match[1] || 'javascript'}">${code.replace(/</g, '&lt;')}</code></pre>`;
+                modal.style.display = 'flex';
+                hljs.highlightAll();
+            }
+        }
+
+        window.closeCodeModal = () => document.getElementById('code-modal').style.display = 'none';
+
+        // --- LIVE CALL CONTROLS ---
+        window.toggleLiveCall = async () => {
+            const btn = document.getElementById('btn-live');
+            const statusPanel = document.getElementById('live-status-panel');
+            
+            isLiveCallActive = !isLiveCallActive;
+            
+            if (isLiveCallActive) {
+                if (!isMicInitialized) {
+                    alert("Tarayıcınız Konuşma Tanımayı desteklemiyor veya izin vermedi.");
+                    isLiveCallActive = false; 
+                    return;
+                }
+                
+                // 1. KRİTİK DÜZELTME: Mikrofon iznini agresifçe iste
+                try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                } catch(e) {
+                    alert("Canlı sohbet için mikrofon izni gereklidir. Lütfen tarayıcı ayarlarınızdan izin verin.");
+                    isLiveCallActive = false;
+                    return;
+                }
+
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fa-solid fa-phone-slash"></i> Kapat';
+                statusPanel.style.display = 'flex';
+                document.getElementById('live-status-text').innerText = "Bağlanıyor...";
+                
+                // 2. KRİTİK DÜZELTME: Mic'i anında başlat (Hata kontrolü yapıldı)
+                try { 
+                    recognition.start();
+                    document.getElementById('live-status-text').innerText = "Seni dinliyor...";
+                } catch(e){ 
+                    console.error("Mic start failed on toggle:", e);
+                    document.getElementById('live-status-text').innerText = "Mikrofon başlatılamadı!";
+                }
+
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fa-solid fa-phone"></i> Canlı Sohbet';
+                statusPanel.style.display = 'none';
+                if (recognition) recognition.abort(); // Mic'i tamamen durdur
+                if (audioContext) {
+                    audioContext.close().then(() => audioContext = null).catch(e => console.error("Audio Context close failed:", e));
+                }
+                isAiSpeaking = false;
+                clearTimeout(silenceTimer);
+            }
+        }
+
+        window.setMode = (mode) => {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('border-blue-500', 'text-blue-500'));
+            document.getElementById(`btn-${mode}`).classList.add('border-blue-500', 'text-blue-500');
+            
+            const info = MODES[mode];
+            addMessageToUI(`**Mod Değiştirildi:** ${info.name}<br>Ses Profili: ${VOICES[mode]}`, 'ai');
+        }
+
+        // --- FIRESTORE HISTORY ---
+        async function saveToHistory(text, role, type) {
+            if(!userId) return;
+            const ref = collection(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'default', 'users', userId, 'messages');
+            // Don't save large base64
+            const saveText = type === 'image' ? '[Görsel]' : text;
+            await setDoc(doc(ref), {
+                text: saveText,
+                role,
+                type,
+                timestamp: serverTimestamp()
+            });
+        }
+        
+        function loadHistory(appId) {
+            const ref = collection(db, 'artifacts', appId, 'users', userId, 'messages');
+            const q = query(ref, orderBy('timestamp', 'asc'), limit(50));
+            onSnapshot(q, (snap) => {
+                // Initial load logic could go here if we wanted to restore session
+            });
+        }
+        
+        // --- INPUT HANDLERS ---
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+        });
+
+    </script>
+</head>
+<body>
+    <!-- Background -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Main App -->
+    <div class="glass-panel app-container relative z-10 w-full max-w-5xl mx-auto h-full flex flex-col shadow-2xl md:rounded-xl md:my-4 md:h-[95vh] overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-black/40 backdrop-blur-md">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-blue-500/30">
+                    MÇ
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">MEMET ÇINAR</h1>
+                    <div class="flex items-center gap-2">
+                        <span id="connection-status" class="status-badge">Bağlanıyor...</span>
+                        <span class="text-xs text-slate-400">Yapay Zeka Asistanı</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Live Call Button -->
+            <button id="btn-live" onclick="toggleLiveCall()" class="btn-live px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-medium transition-all flex items-center gap-2 border border-slate-600">
+                <i class="fa-solid fa-phone"></i> Canlı Sohbet
+            </button>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="px-4 py-3 bg-black/20 flex gap-3 overflow-x-auto border-b border-white/5 scrollbar-hide">
+            <button id="btn-STANDARD" onclick="setMode('STANDARD')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition border-blue-500 text-blue-500 whitespace-nowrap">
+                <i class="fa-solid fa-robot"></i> Standart
+            </button>
+            <button id="btn-NANO" onclick="setMode('NANO')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition whitespace-nowrap text-yellow-400">
+                <i class="fa-solid fa-bolt"></i> Nano Banana
+            </button>
+            <button id="btn-LOVER_BOY" onclick="setMode('LOVER_BOY')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition whitespace-nowrap text-indigo-400">
+                <i class="fa-solid fa-mars"></i> Sevgili (Erkek)
+            </button>
+            <button id="btn-LOVER_GIRL" onclick="setMode('LOVER_GIRL')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition whitespace-nowrap text-pink-400">
+                <i class="fa-solid fa-venus"></i> Sevgili (Kız)
+            </button>
+            <button id="btn-ADVENTURE" onclick="setMode('ADVENTURE')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition whitespace-nowrap text-purple-400">
+                <i class="fa-solid fa-dungeon"></i> RPG Macera
+            </button>
+             <button id="btn-CODER" onclick="setMode('CODER')" class="mode-btn px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 text-sm hover:bg-white/10 transition whitespace-nowrap text-emerald-400">
+                <i class="fa-solid fa-code"></i> Pro Coder
+            </button>
+        </div>
+
+        <!-- Live Status Overlay (Hidden by default) -->
+        <div id="live-status-panel" class="absolute top-[130px] left-0 right-0 z-20 bg-black/60 backdrop-blur-sm py-2 px-6 hidden justify-between items-center border-b border-white/10">
+            <span id="live-status-text" class="text-sm font-mono text-green-400 animate-pulse">Bağlanıyor...</span>
+            <div class="voice-wave opacity-0 transition-opacity">
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-container" class="chat-scroll flex-1 p-6 overflow-y-auto flex flex-col gap-4 relative">
+            
+            <div class="msg-bubble msg-ai">
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fa-solid fa-microchip text-blue-500"></i>
+                    <span class="font-bold text-sm text-slate-300">Sistem Başlatıldı</span>
+                </div>
+                Merhaba patron! Ben <strong>MEMET ÇINAR</strong>. <br>
+                Hayal gücüm geniş, tasarımım şık ve senin için her şeyi yapabilirim.<br><br>
+                • <strong>Telefon Modu:</strong> Yukarıdaki "Canlı Sohbet"e bas ve telefonu kulağına götür.<br>
+                • <strong>🏰 RPG Macera Modu (YENİ):</strong> Zindan efendisi ile oynarken sahneler <strong>otomatik çizilir!</strong><br>
+                • <strong>✨ Sihirli Yazım Asistanı (YENİ):</strong> Aşağıdaki "✨" butonuna bas ve metnini profesyonelleştir.
+            </div>
+
+            <!-- Thinking Indicator -->
+            <div id="thinking-indicator" class="hidden msg-bubble msg-ai w-fit items-center gap-2">
+                <i class="fa-solid fa-circle-notch fa-spin text-blue-400"></i>
+                <span class="text-sm text-slate-400">Memet Çınar düşünüyor...</span>
+            </div>
+
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-5 bg-black/40 backdrop-blur-md border-t border-white/10">
+            <div class="input-wrapper flex items-end gap-3 bg-slate-900/50 p-3 rounded-2xl transition-all">
+                
+                <!-- Magic Rewrite Button (NEW) -->
+                <button id="magic-btn" onclick="enhanceInput()" class="magic-btn w-10 h-10 rounded-full flex items-center justify-center text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition shadow-lg" title="Metni Sihirli Bir Şekilde Düzelt">
+                    <i class="fa-solid fa-wand-magic-sparkles magic-sparkle"></i>
+                </button>
+
+                <textarea id="user-input" rows="1" placeholder="Bir şeyler söyle veya yaz..." class="flex-1 bg-transparent border-none outline-none text-white resize-none py-2 max-h-32"></textarea>
+                
+                <button onclick="handleSend()" class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transition transform hover:scale-105">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="text-center mt-2 text-[10px] text-slate-600 font-mono">
+                MEMET ÇINAR v4.1 - Powered by Imagen & Neural TTS
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Full Screen Code Modal -->
+    <div id="code-modal">
+        <div class="code-header">
+            <span class="text-emerald-400 font-mono font-bold"><i class="fa-solid fa-terminal"></i> PROFESSIONAL EDITOR</span>
+            <button onclick="closeCodeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        </div>
+        <div class="code-content" id="code-display">
+            <!-- Code injected here -->
+        </div>
+    </div>
+
+</body>
+</html>
