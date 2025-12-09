@@ -1,0 +1,2 @@
+# MEMET-INAR-YAPAY-ZEKA-AS-STANI
+Yapay Zeka
